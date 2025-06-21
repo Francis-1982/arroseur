@@ -35,7 +35,6 @@ const int delRouge = 12;                                                      //
 const int delVerte = 10;                                                      // Assignation de l'anode de la delVerte à la pin 10.
 const int boutonOn = 3;                                                       // Création d'une constante nombre entier qui ne changera jamais et assigné à la Pin 3.
 const int hautParleur = 2;                                                    // Pin du haut-parleur
-//int onoffLCD = 9;                                                           // Assignation de l'alimentation de l'écran LCD à la pin 9.
 const int vccsondeEau = 13;                                                   // Assignation de l'alimentation de la sonde eau à la pin 13.
 const int relaisPomp = 8;                                                     // Assignation du relais à la pin 8.
 const int sondeHum = 4;                                                       // Assignation de la sonde d'humidité à la pin 4.
@@ -99,7 +98,6 @@ void setup() {
   pinMode(sondeHum2, OUTPUT);       // Assignation de la Pin 7 qui doit être un sorti d'information   (alimentation de la sonde d'humidité #2).
   pinMode(vccsondeEau, OUTPUT);     // Assignation de la Pin 13 qui doit être un sorti d'information  (alimentation de la sonde eau).
   pinMode(sondeEau, INPUT_PULLUP);  // Assignation de la Pin 5 qui doit être une entrée d'information (lire un résultat de la sonde eau).
-//  pinMode(onoffLCD, OUTPUT);        // Assignation de la Pin 9 qui doit être un sorti d'information (alimentation de l'écran LCD).
   pinMode(boutonOn, INPUT);         // Assignation du mode de fonctionnement de la pin 3 = lire un résultat.
   lcd.init();                       // Initialisation de l'écran LCD.
   lcd.backlight();                  // Activation des backlight.
@@ -127,7 +125,6 @@ void loop() {
   if ((RTC.read(tm) && tm.Hour == 20 && tm.Minute == 10 && tm.Second == 10)  // L'heure programmé pour l'arrosage du soir.
       || digitalRead(boutonOn)) {                            // Si le bouton On est enfoncé, exécute la suite du programme.
 
-    //digitalWrite(onoffLCD, HIGH);    // Allume l'écran LCD.
     lcd.backlight();                 // Allume l'écran LCD.
     lcd.setCursor(0, 1);             // Ligne 1
     lcd.print("     Minuterie");     // Affiche la phrase: Minuterie
@@ -154,10 +151,7 @@ void loop() {
     pourcentageHumiditeTerre = 200;
     pourcentageHumiditePlato = 200;
 
-    if (reservoirVide) {      // Si tu détecte la sonde eau (la Sonde émet un signal lorsqu'il n'y a pas d'eau):
-      alerteReservoirVide();
-    } else {                   // Sinon si la sonde eau n'émet pas de signal (indique la présence d'eau).
-
+    if (!reservoirVide) {      // Si le réservoir n'est pas vide
     // ----------------------------------------------- UNE PREMIÈRE LECTURE D'HUMIDITÉ EST EFFECTUÉ (2 sondes) ET LE RAPPORT APPARAIT SUR LE MONITEUR SÉRIE ----------------------------------------------------------
 
       digitalWrite(delRouge, LOW);           // Ferme la DELrouge.
@@ -183,8 +177,8 @@ void loop() {
     //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
     int arrosage = 0;
-    while (!reservoirVide && (pourcentageHumiditePlato < seuilPlato) && (pourcentageHumiditeTerre < seuilTerre)) {
-      arrosage++;                     // incrémente arrosage.
+    while (!reservoirVide && (pourcentageHumiditePlato < seuilPlato) && (pourcentageHumiditeTerre < seuilTerre) && (arrosage < 16)) {
+      arrosage++;                     // incrémente arrosage. équivalent à arrosage=arrosage+1
       lcd.setCursor(0, 1);            // Ligne 1
       lcd.print(pourcentageHumiditeTerre); // Affiche la valeur en % de la sonde de l'humidité.
       lcd.print("% ; ");
@@ -228,7 +222,7 @@ void loop() {
 
       lcd.print("TERRE ASSEZ HUMIDE");    // Affiche la phrase: TERRE ASSEZ HUMIDE.
       lcd.setCursor(0, 2);                // Ligne 2
-      lcd.print("Au dessus de ");         // Imprimer la phrase: Haut dessus de 50%.
+      lcd.print("Au dessus de ");         // Imprimer la phrase: Au dessus de 50%.
       lcd.print(seuilTerre);
       lcd.print("%");
 
@@ -239,14 +233,11 @@ void loop() {
       lcd.print("*** FIN DU CYCLE ***");  // Imprime la phrase: *** FIN DU CYCLE ***
       lcd.setCursor(0, 2);                // Ligne 2
       lcd.print("**** D'ARROSAGE ****");  // Imprime la phrase: **** D'ARROSAGE ****
-
-      delay(3000);                        // Durée de l'affichage (3 secondes).
     }
   }
 
   // Ferme tout (sauf la delRouge)
   lcd.clear();                        // Effacer l'écran.
-  // digitalWrite(onoffLCD, LOW);     // Fermer l'écran LCD.
   lcd.noBacklight();
   digitalWrite(delVerte, LOW);     // Fermer la delVerte.
   digitalWrite(sondeHum, LOW);     // Fermer la sonde d'humidité pendant la temporisation(12h) pour protection de l'oxydation de la sonde.
