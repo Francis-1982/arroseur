@@ -1,40 +1,41 @@
-
-
-
 // Section 1 - Description ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-/*
-  Programmation d'un projet réalisé par TRONIK AVENTUR afin de vérifier au 12h si la plante à besoin d'eau.
-  Crée par TRONIK AVENTUR 
-
+/*/Users/francistheriault/Desktop/Arduino/pitches.h/pitches.h
+  Programmation d'un projet réalisé par TRONIK AVENTUR afin de vérifier au 24h si la plante à besoin d'eau.
+  Crée par TRONIK AVENTUR (François Frandon)
   Modifié par Francis 
-  Modification exécuté: Ajout d'une sonde d'eau qui permet d'émmettre un message et un signial audio et visuel(led rouge) lorsque le réservoir d'eau est vide. 
-                        Quand l'avertissement est fait, le système d'arrosage est désactivé soit au départ ou pendant les 15 cycles d'arrosage prévus.
-                        Ajout d'une sonde d'humidité dans le plateau de la plante. 
-                        La sonde désactive l'arrosage losque le plateau est rempli d'eau pour éviter le débordement. 
-                        Ajout d'une note de musique pour l'activation du système.
-                        Ajuster à 12 heures la vérification du sol avec un RTC.
-                        Ajout d'un écran LCD.
-                        Ajout d'un bouton pour activer manuellement le système.
 
+  Modifications exécutés: Gestion du Niveau d'Eau :
+                          - Une sonde d'eau a été intégrée pour détecter lorsque le réservoir est vide. Un message et un signal (sonore et lumineux via une LED rouge) avertissent alors l'utilisateur. 
+                            Dès cet avertissement, le système d'arrosage se désactive automatiquement, que ce soit au démarrage ou pendant les cycles prévus.                 
+                          - Prévention des Débordements : L'ajout d'une sonde d'humidité dans le plateau de la plante permet de détecter la présence d'eau. 
+                            Cette sonde désactive l'arrosage dès que le plateau est rempli, évitant ainsi tout débordement.
+                          Expérience Utilisateur :
+                          - Un son de départ est maintenant exécuté lors de l'activation du système.
+                          - Un écran LCD a été ajouté pour afficher les informations.
+                          - Un bouton permet désormais d'activer manuellement l'arrosage à tout moment.
+                          Optimisation de la Vérification du Sol :
+                          - La fréquence de vérification de l'humidité du sol a été ajustée à toutes les 12 heures grâce à l'intégration d'un module RTC (horloge en temps réel),
+                            garantissant un suivi précis des besoins de la plante.
+                        
   Date de création : 21 février 2024
-  Dernière modification : 26 février 2025
+  Dernière modification : 8 juin 2025 (programmation restructuré par Valéry Marzlin)
 */
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 // Section 2 - Les variables ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Inclusion des bibliothèques nécessaires
-#include <LCDI2C_Multilingual.h>                                              // Bibliothèque LCD
+#include <LCDI2C_Multilingual.h>                                              // Bibliothèque LCD.
 #include "pitches.h"                                                          // Réserve de notes déjà définies.
-#include <Wire.h>                                                             // Bibliothèque RTC
-#include <TimeLib.h>                                                          // Bibliothèque RTC
-#include <DS1307RTC.h>                                                        // Bibliothèque RTC
+#include <Wire.h>                                                             // Bibliothèque RTC.
+#include <TimeLib.h>                                                          // Bibliothèque RTC.
+#include <DS1307RTC.h>                                                        // Bibliothèque RTC.
 
 // Déclaration des constantes des pin, avec leur usage
 const int sondeEau = 5;                                                       // Assignation d'une constante nombre entier qui ne changera jamais et assigné à la pin 5 pour la sonde eau (SONDE EXTERNE: Model: XKC-Y25-NPN).
 const int delRouge = 12;                                                      // Assignation de l'anode de la delRouge à la pin 12.
 const int delVerte = 10;                                                      // Assignation de l'anode de la delVerte à la pin 10.
 const int boutonOn = 3;                                                       // Création d'une constante nombre entier qui ne changera jamais et assigné à la Pin 3.
-const int hautParleur = 2;                                                    // Pin du haut-parleur
+const int hautParleur = 2;                                                    // Pin du haut-parleur.
 const int vccsondeEau = 13;                                                   // Assignation de l'alimentation de la sonde eau à la pin 13.
 const int relaisPomp = 8;                                                     // Assignation du relais à la pin 8.
 const int sondeHum = 4;                                                       // Assignation de la sonde d'humidité à la pin 4.
@@ -43,15 +44,15 @@ const int captAna = A1;                                                       //
 const int captAna2 = A0;                                                      // Assignation de la pin A0 pour le capteur analogique de la sonde d'humidité #2.
 
 // Déclaration des constantes de paramétrage
-const int sec = 1008;       // Valeur de la sonde lorsque la terre est sèche, correspond à 1%.
-const int humide = 285;     // Valeur de la sonde lorsqu'elle est dans l'eau, correspond à 100%.
-const int seuilTerre = 70;  // Pourcentage d'humidité de la terre en dessous duquel arroser
-const int seuilPlato = 36;  // Pourcentage d'humidité du plateau en dessous duquel il est possible d'arroser
+const int sec = 1008;                                                         // Valeur de la sonde lorsque la terre est sèche, correspond à 1%.
+const int humide = 285;                                                       // Valeur de la sonde lorsqu'elle est dans l'eau, correspond à 100%.
+const int seuilTerre = 70;                                                    // Pourcentage d'humidité de la terre en dessous duquel arroser.
+const int seuilPlato = 36;                                                    // Pourcentage d'humidité du plateau en dessous duquel il est possible d'arroser.
 
 // Déclaration et initialisation des variables
-int pourcentageHumiditeTerre;                                                 // Assignation de la valeur 0 au capteur analogique de la sonde d'humidité.
-int pourcentageHumiditePlato;                                                 // Assignation de la valeur 0 au capteur analogique de la sonde d'humidité #2.
-bool reservoirVide;                                                           // true si le réservoir est vide, false sinon
+int pourcentageHumiditeTerre;                                                 // Déclare la variable utilisé pour la sonde d'humidité pour la terre.
+int pourcentageHumiditePlato;                                                 // Déclare la variable utilisé pour la sonde d'humidité pour le plateau.
+bool reservoirVide;                                                           // True si le réservoir est vide, false sinon.
 int melody1[] = { NOTE_G4, NOTE_B4, NOTE_D5, 0, NOTE_G4, NOTE_B4, NOTE_D5 };  // Assignation de la mélodie déterminée par les notes choisies ci dessous:
 int melodydep[] = { NOTE_G4 };                                                // Assignation de la note choisie pour le départ.
 LCDI2C_Latin lcd(0x27, 20, 4);                                                // Adresse I2C: 0x27; Dimension de l'affichage: 20x4.
@@ -60,32 +61,32 @@ LCDI2C_Latin lcd(0x27, 20, 4);                                                //
 
 //---------------------------------------------- MESSAGE ET SIGNAL D'ALARME AUDITIF ET VISUEL AFIN DE REMPLIR LE RÉSERVOIR -----------------------------------------------------------------------------------
 void alerteReservoirVide() {
-  digitalWrite(delRouge, HIGH);   // Allume la DELrouge.
+  digitalWrite(delRouge, HIGH);  // Allume la DELrouge.
 
-  lcd.home();                     // Ligne 0
-  lcd.print("      REMPLIR");     // Affiche la phrase: REMPLIR.
-  lcd.setCursor(0, 1);            // Ligne 1
-  lcd.print("   RESERVE D'EAU");  // Affiche la phrase: RESERVE D'EAU.
+ lcd.setCursor(0,1);             // Ligne 1.
+  lcd.print("      REMPLIR");    // Affiche la phrase: REMPLIR.
+  lcd.setCursor(0,2);            // Ligne 2.
+  lcd.print("   RESERVE D'EAU"); // Affiche la phrase: RESERVE D'EAU.
 
   for (int thisNote = 0; thisNote < 8; thisNote++) {      // Procédé pour faire jouer les notes de la mélodie ???
-    const int noteDurations = 200;                       // Le temps pour toutes les notes.
+    const int noteDurations = 200;                        // Le temps pour toutes les notes.
     tone(hautParleur, melody1[thisNote], noteDurations);  // Active la mélodie.
     delay(noteDurations * 1.30);                          // Pause entre les notes.
   }
-  noTone(hautParleur);                                    // Arrêt de la note.
+  noTone(hautParleur);                                    // Arrêt des notes.
 
   delay(3000);                    // Durée de l'affichage (3 secondes).
-  lcd.clear();                    // Effacer l'écran
+  lcd.clear();                    // Effacer l'écran.
 }
 
 void mesureHumidite() {
-  pourcentageHumiditePlato = analogRead(captAna2);  // Mesure le résultat analogique de la sonde d'humidité #2.
+  pourcentageHumiditePlato = analogRead(captAna2);                               // Mesure le résultat analogique de la sonde d'humidité #2.
   pourcentageHumiditePlato = map(pourcentageHumiditePlato, humide, sec, 100, 0); // La fonction MAP détermine en pourcentage le résultat de la sonde d'humidité #2.
-  pourcentageHumiditePlato = constrain(pourcentageHumiditePlato, 0, 100); // La fonction constrain permet de s'assurer que la valeur reste entre 0 et 100.
+  pourcentageHumiditePlato = constrain(pourcentageHumiditePlato, 0, 100);        // La fonction constrain permet de s'assurer que la valeur reste entre 0 et 100.
 
-  pourcentageHumiditeTerre = analogRead(captAna);  // Mesure le résultat analogique de la sonde d'humidité.
+  pourcentageHumiditeTerre = analogRead(captAna);                                // Mesure le résultat analogique de la sonde d'humidité.
   pourcentageHumiditeTerre = map(pourcentageHumiditeTerre, humide, sec, 100, 0); // La fonction MAP détermine en pourcentage le résultat de la sonde d'humidité.
-  pourcentageHumiditeTerre = constrain(pourcentageHumiditeTerre, 0, 100); // La fonction constrain permet de s'assurer que la valeur reste entre 0 et 100.
+  pourcentageHumiditeTerre = constrain(pourcentageHumiditeTerre, 0, 100);        // La fonction constrain permet de s'assurer que la valeur reste entre 0 et 100.
 }
 
 // Section 3 - Les instructions au démarrage --------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -102,15 +103,14 @@ void setup() {
   lcd.init();                       // Initialisation de l'écran LCD.
   lcd.backlight();                  // Activation des backlight.
   lcd.print("Initialisation");
-//  Serial.begin(9600);               // Initialisation du moniteur série à la vitesse de 9600 baud.
   digitalWrite(relaisPomp, LOW);    // Directive qui détermine au départ l'état de la pompe - FERMÉ - (Désactivation du relais qui active la pompe).
   digitalWrite(sondeHum, LOW);      // Directive qui détermine au départ l'état de la sonde d'humidité - FERMÉ - (Désactivation de la sonde d'humidité) protection de l'oxydation de la sonde.
   digitalWrite(sondeHum2, LOW);     // Directive qui détermine au départ l'état de la sonde d'humidité #2 - FERMÉ - (Désactivation de la sonde d'humidité #2) protection de l'oxydation de la sonde.
   digitalWrite(delVerte, LOW);      // Fermer la delVerte.
-  digitalWrite(vccsondeEau, LOW);   // Fermer la sonde eau pendant la temporisation(12h).
+  digitalWrite(vccsondeEau, LOW);   // Fermer la sonde eau pendant la temporisation(24h).
   digitalWrite(delRouge, LOW);      // Ferme la DELrouge.
   lcd.noBacklight();                // Désactivation des backlight.
-  lcd.clear();
+  lcd.clear();                      // Effacer l'écran.
 }
 
 //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -119,16 +119,16 @@ void setup() {
 
 void loop() {
 
-  //------------------------------------------- UN TEMPS DE 12 HEURE EST PROGRAMMÉ AFIN DE VÉRIFIER SI LA PLANTE DOIT ÊTRE ARROSÉ ------------------------------------------------------------------------------
+  //------------------------------------------- UN TEMPS DE 24 HEURE EST PROGRAMMÉ AFIN DE VÉRIFIER SI LA PLANTE DOIT ÊTRE ARROSÉ ------------------------------------------------------------------------------
 
-  tmElements_t tm;                                           // Initialisation du RTC
+  tmElements_t tm;                                                           // Initialisation du RTC.
   if ((RTC.read(tm) && tm.Hour == 20 && tm.Minute == 10 && tm.Second == 10)  // L'heure programmé pour l'arrosage du soir.
-      || digitalRead(boutonOn)) {                            // Si le bouton On est enfoncé, exécute la suite du programme.
-
+      || digitalRead(boutonOn)) {    // Si le bouton On est enfoncé, exécute la suite du programme.
+    digitalWrite(delVerte, HIGH);    // Allume la delVerte.
     lcd.backlight();                 // Allume l'écran LCD.
-    lcd.setCursor(0, 1);             // Ligne 1
-    lcd.print("     Minuterie");     // Affiche la phrase: Minuterie
-    lcd.setCursor(0, 2);             // Ligne 2
+    lcd.setCursor(0, 1);             // Ligne 1.
+    lcd.print("     Minuterie");     // Affiche la phrase: Minuterie.
+    lcd.setCursor(0, 2);             // Ligne 2.
     lcd.print("    Activation ! ");  // Affiche la phrase: Activation !
 
     for (int thisNote = 0; thisNote < 1; thisNote++) {        // Procédé pour faire jouer la note de départ.
@@ -143,15 +143,15 @@ void loop() {
 
     //------------------------------------------------------------ VÉRIFICATION DU NIVEAU D'EAU DANS LE RÉSERVOIR ------------------------------------------------------------------------------------------------
 
-    digitalWrite(delVerte, HIGH);     // Allume la delVerte.
     digitalWrite(vccsondeEau, HIGH);  // Activer la sonde eau.
     delay(2000);                      // Pause de 2 secondes.
 
     reservoirVide = digitalRead(sondeEau);
-    pourcentageHumiditeTerre = 200;
-    pourcentageHumiditePlato = 200;
+    pourcentageHumiditeTerre = 200;   // Protection pour ne pas que le système s'active sans prendre la mesure de l'humidité. Donc à 200 % il ne pourra jamais s'activer (en dehors de 100%).ligne 179
+    pourcentageHumiditePlato = 200;   // Protection pour ne pas que le système s'active sans prendre la mesure de l'humidité. Donc à 200 % il ne pourra jamais s'activer (en dehors de 100%).ligne 179
 
-    if (!reservoirVide) {      // Si le réservoir n'est pas vide
+    if (!reservoirVide) {             // Si le réservoir n'est pas vide (le ! signifie inverser)
+
     // ----------------------------------------------- UNE PREMIÈRE LECTURE D'HUMIDITÉ EST EFFECTUÉ (2 sondes) ET LE RAPPORT APPARAIT SUR LE MONITEUR SÉRIE ----------------------------------------------------------
 
       digitalWrite(delRouge, LOW);           // Ferme la DELrouge.
@@ -159,15 +159,15 @@ void loop() {
       digitalWrite(sondeHum2, HIGH);         // Ouvre la sonde de l'humidité #2.
       delay(1000);                           // Un delais d'une seconde ensuite.
 
-      mesureHumidite();
+      mesureHumidite();                      // Mesure l'humidité.
 
       lcd.home();
-      lcd.print("HUMID. PLATEAU= ");         // Affiche la phrase: HUMID. PLATEAU =
-      lcd.print(pourcentageHumiditePlato);                                     // Afficher ensuite la valeur en % de la sonde d'humidité #2.
+      lcd.print(" HUMID. PLATEAU= ");       // Affiche la phrase: HUMID. PLATEAU =
+      lcd.print(pourcentageHumiditePlato);  // Afficher ensuite la valeur en % de la sonde d'humidité du plateau.
       lcd.println("%");
-      lcd.setCursor(0, 2);                 // Ligne 2
-      lcd.print("HUMID. TERRE= ");         // Affiche la phrase: HUMID. TERRE =
-      lcd.print(pourcentageHumiditeTerre);                                    // Affiche ensuite la valeur en % de la sonde d'humidité.
+      lcd.setCursor(0, 2);                  // Ligne 2.
+      lcd.print(" HUMID. TERRE= ");         // Affiche la phrase: HUMID. TERRE =
+      lcd.print(pourcentageHumiditeTerre);  // Affiche ensuite la valeur en % de la sonde d'humidité de la terre.
       lcd.println("%");
 
       delay(3000);  // Durée de l'affichage (3 secondes).
@@ -177,11 +177,11 @@ void loop() {
     //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
     int arrosage = 0;
-    while (!reservoirVide && (pourcentageHumiditePlato < seuilPlato) && (pourcentageHumiditeTerre < seuilTerre) && (arrosage < 16)) {
-      arrosage++;                     // incrémente arrosage. équivalent à arrosage=arrosage+1
+    while (!reservoirVide && (pourcentageHumiditePlato < seuilPlato) && (pourcentageHumiditeTerre < seuilTerre) && (arrosage < 16)) { //Continue tant que:(réservoir n'est ≠ vide, % plateau atteint ≠ seuil, % terre atteint ≠ seuil, Nmbr arro. atteint ≠ 16)
+      arrosage++;                     // Incrémente arrosage. Équivalent à arrosage= arrosage +1.
       lcd.setCursor(0, 1);            // Ligne 1
       lcd.print(pourcentageHumiditeTerre); // Affiche la valeur en % de la sonde de l'humidité.
-      lcd.print("% ; ");
+      lcd.print("% ; ");              // Affiche %
       lcd.print(arrosage);            // Affiche le nombre d'arrosage effectué depuis le début sur l'écran LCD.
       lcd.print(" arrosage ");        // Affiche le mot: ; arrosage
       digitalWrite(relaisPomp, HIGH); // Active la pompe.
@@ -190,13 +190,14 @@ void loop() {
       delay(20000);                   // Pause de la pompe pour laisser à l'eau le temps de pénétrer la terre (20 secondes).
 
       //------------------------------------- MISE À JOUR DES MESURES DEPUIS LES CAPTEURS -------------------------------------//
-      mesureHumidite();
-      reservoirVide = digitalRead(sondeEau);
+
+      mesureHumidite();                      // Mesure l'humidité.
+      reservoirVide = digitalRead(sondeEau); // Si tu détecte la sonde eau, cela veut dire que le réservoir est vide. 
     }
 
-    if (reservoirVide) { // Si le réservoir est vide
-      alerteReservoirVide();
-    } else if (pourcentageHumiditePlato >= seuilPlato) { // Sinon, si le plateau est rempli d'eau
+    if (reservoirVide) {                     // Si le réservoir est vide:
+      alerteReservoirVide();                 // Déclanche l'alerte réservoir vide.
+    } else if (pourcentageHumiditePlato >= seuilPlato) { // Sinon, si le plateau est rempli d'eau:
 
       //--------------------------------------- COMMANDE POUR CESSER D'ARROSER QUAND LA VALEUR DE LA SONDE D'HUMIDITÉ #2 INDIQUE QUE LE PLATEAU EST REMPLI D'EAU -----------------------------------------------------
 
@@ -208,7 +209,7 @@ void loop() {
       lcd.print("ARRET DE L'ARROSAGE");   // Affiche la phrase: ARRET DE L'ARROSAGE
       delay(5000);                        // Durée de l'affichage (5 secondes).
 
-    } else {  // Sinon (si l'humidité de la terre est plus grande ou égale à seuilTerre).
+    } else {    // Sinon, si l'humidité de la terre est plus grande ou égale à seuilTerre:
 
       //--------------------------------------- COMMANDE POUR CESSER D'ARROSER QUAND LA VALEUR DE LA SONDE D'HUMIDITÉ INDIQUE UN SOL HUMIDE -------------------------------------------------------------------------
 
@@ -220,29 +221,31 @@ void loop() {
       delay(3000);                        // Durée de l'affichage (3 secondes).
       lcd.clear();                        // Effacer l'écran.
 
-      lcd.print("TERRE ASSEZ HUMIDE");    // Affiche la phrase: TERRE ASSEZ HUMIDE.
+      lcd.print(" TERRE ASSEZ HUMIDE ");  // Affiche la phrase: TERRE ASSEZ HUMIDE.
       lcd.setCursor(0, 2);                // Ligne 2
-      lcd.print("Au dessus de ");         // Imprimer la phrase: Au dessus de 50%.
-      lcd.print(seuilTerre);
+      lcd.print("  Au dessus de ");       // Affiche la phrase: Au dessus de 50%.
+      lcd.print(seuilTerre);              // Affiche ensuite la valeur en % de la sonde d'humidité.
       lcd.print("%");
 
       delay(3000);                        // Durée de l'affichage (3 secondes).
       lcd.clear();                        // Effacer l'écran.
 
       lcd.setCursor(0, 1);                // Ligne 1
-      lcd.print("*** FIN DU CYCLE ***");  // Imprime la phrase: *** FIN DU CYCLE ***
+      lcd.print("*** FIN DU CYCLE ***");  // Affiche  la phrase: *** FIN DU CYCLE ***
       lcd.setCursor(0, 2);                // Ligne 2
-      lcd.print("**** D'ARROSAGE ****");  // Imprime la phrase: **** D'ARROSAGE ****
+      lcd.print("**** D'ARROSAGE ****");  // Affiche  la phrase: **** D'ARROSAGE ****
+      delay(3000);                        // Durée de l'affichage (3 secondes).
     }
   }
 
   // Ferme tout (sauf la delRouge)
-  lcd.clear();                        // Effacer l'écran.
-  lcd.noBacklight();
+
+  lcd.clear();                     // Effacer l'écran.
+  lcd.noBacklight();               // Désactivation des backlight.
   digitalWrite(delVerte, LOW);     // Fermer la delVerte.
-  digitalWrite(sondeHum, LOW);     // Fermer la sonde d'humidité pendant la temporisation(12h) pour protection de l'oxydation de la sonde.
-  digitalWrite(sondeHum2, LOW);    // Fermer la sonde d'humidité #2 pendant la temporisation(12h) pour protection de l'oxydation de la sonde.
-  digitalWrite(vccsondeEau, LOW);  // Fermer la sonde eau pendant la temporisation(12h).
+  digitalWrite(sondeHum, LOW);     // Fermer la sonde d'humidité pendant (24h) pour protection de l'oxydation de la sonde.
+  digitalWrite(sondeHum2, LOW);    // Fermer la sonde d'humidité #2 pendant (24h) pour protection de l'oxydation de la sonde.
+  digitalWrite(vccsondeEau, LOW);  // Fermer la sonde d'eau pendant (24h).
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
